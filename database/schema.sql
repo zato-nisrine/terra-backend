@@ -1,0 +1,155 @@
+-- ============================================================
+--  Terra — Schéma de base de données PostgreSQL
+-- ============================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('client', 'admin');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'listing_type') THEN
+    CREATE TYPE listing_type AS ENUM ('appartement', 'studio', 'maison', 'villa', 'chambre');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'listing_status') THEN
+    CREATE TYPE listing_status AS ENUM ('disponible', 'reserve', 'loue', 'indisponible');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reservation_type') THEN
+    CREATE TYPE reservation_type AS ENUM ('visite', 'reservation');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reservation_status') THEN
+    CREATE TYPE reservation_status AS ENUM ('en_attente', 'confirme', 'refuse', 'annule');
+  END IF;
+END$$;
+
+-- ============================================================
+-- 1. USERS — clients inscrits + admin
+-- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+  id           SERIAL PRIMARY KEY,
+  nom          VARCHAR(100) NOT NULL,
+  prenom       VARCHAR(100) NOT NULL,
+  email        VARCHAR(191) NOT NULL UNIQUE,
+  telephone    VARCHAR(20),
+  mot_de_passe VARCHAR(255) NOT NULL,
+  role         user_role NOT NULL DEFAULT 'client',
+  est_actif    SMALLINT NOT NULL DEFAULT 1,
+  created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_role ON users (role);
+
+-- ============================================================
+-- 2. LISTINGS — annonces de logements
+-- ============================================================
+CREATE TABLE IF NOT EXISTS listings (
+  id              SERIAL PRIMARY KEY,
+  titre           VARCHAR(200) NOT NULL,
+  description     TEXT NOT NULL,
+  type_logement   listing_type NOT NULL,
+  statut          listing_status NOT NULL DEFAULT 'disponible',
+  prix            NUMERIC(12,2) NOT NULL,
+  surface         NUMERIC(8,2),
+  nb_pieces       SMALLINT,
+  nb_chambres     SMALLINT,
+  nb_salles_bain  SMALLINT,
+  ville           VARCHAR(100) NOT NULL,
+  quartier        VARCHAR(100),
+  adresse         VARCHAR(255),
+  latitude        NUMERIC(10,7),
+  longitude       NUMERIC(10,7),
+  meuble          SMALLINT NOT NULL DEFAULT 0,
+  climatise       SMALLINT NOT NULL DEFAULT 0,
+  parking         SMALLINT NOT NULL DEFAULT 0,
+  gardiennage     SMALLINT NOT NULL DEFAULT 0,
+  eau_courante    SMALLINT NOT NULL DEFAULT 0,
+  groupe_electro  SMALLINT NOT NULL DEFAULT 0,
+  piscine         SMALLINT NOT NULL DEFAULT 0,
+  est_publie      SMALLINT NOT NULL DEFAULT 0,
+  cree_par        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ville ON listings (ville);
+CREATE INDEX IF NOT EXISTS idx_type_logement ON listings (type_logement);
+CREATE INDEX IF NOT EXISTS idx_statut ON listings (statut);
+CREATE INDEX IF NOT EXISTS idx_prix ON listings (prix);
+CREATE INDEX IF NOT EXISTS idx_est_publie ON listings (est_publie);
+
+-- ============================================================
+-- 3. LISTING_IMAGES — photos liées à un logement
+-- ============================================================
+CREATE TABLE IF NOT EXISTS listing_images (
+  id             SERIAL PRIMARY KEY,
+  listing_id     INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  url            VARCHAR(500) NOT NULL,
+  est_principale SMALLINT NOT NULL DEFAULT 0,
+  ordre          SMALLINT NOT NULL DEFAULT 0,
+  created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_id ON listing_images (listing_id);
+
+-- ============================================================
+-- 4. RESERVATIONS — demandes de réservation / visite
+-- ============================================================
+CREATE TABLE IF NOT EXISTS reservations (
+  id            SERIAL PRIMARY KEY,
+  listing_id    INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type          reservation_type NOT NULL DEFAULT 'visite',
+  statut        reservation_status NOT NULL DEFAULT 'en_attente',
+  date_souhaitee DATE,
+  message       TEXT,
+  note_admin    TEXT,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_resa_listing_id ON reservations (listing_id);
+CREATE INDEX IF NOT EXISTS idx_resa_user_id ON reservations (user_id);
+CREATE INDEX IF NOT EXISTS idx_resa_statut ON reservations (statut);
+
+-- ============================================================
+-- 5. CONTACTS — messages depuis le formulaire de contact
+-- ============================================================
+CREATE TABLE IF NOT EXISTS contacts (
+  id          SERIAL PRIMARY KEY,
+  nom         VARCHAR(100) NOT NULL,
+  email       VARCHAR(191) NOT NULL,
+  telephone   VARCHAR(20),
+  sujet       VARCHAR(200),
+  message     TEXT NOT NULL,
+  est_lu      SMALLINT NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_est_lu ON contacts (est_lu);
+
+-- ============================================================
+-- Triggers pour mise à jour automatique de updated_at
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS users_updated_at ON users;
+CREATE TRIGGER users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS listings_updated_at ON listings;
+CREATE TRIGGER listings_updated_at
+  BEFORE UPDATE ON listings
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS reservations_updated_at ON reservations;
+CREATE TRIGGER reservations_updated_at
+  BEFORE UPDATE ON reservations
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
