@@ -17,12 +17,12 @@ const Car = {
     const params = [];
 
     if (marque) {
-      query += ' AND c.marque ILIKE ?';
-      params.push(`%${marque}%`);
+      query += ' AND LOWER(c.marque) LIKE ?';
+      params.push(`%${marque.toLowerCase()}%`);
     }
     if (modele) {
-      query += ' AND c.modele ILIKE ?';
-      params.push(`%${modele}%`);
+      query += ' AND LOWER(c.modele) LIKE ?';
+      params.push(`%${modele.toLowerCase()}%`);
     }
     if (type_carburant) {
       query += ' AND c.type_carburant = ?';
@@ -54,12 +54,12 @@ const Car = {
     const params = [];
 
     if (marque) {
-      query += ' AND marque ILIKE ?';
-      params.push(`%${marque}%`);
+      query += ' AND LOWER(marque) LIKE ?';
+      params.push(`%${marque.toLowerCase()}%`);
     }
     if (modele) {
-      query += ' AND modele ILIKE ?';
-      params.push(`%${modele}%`);
+      query += ' AND LOWER(modele) LIKE ?';
+      params.push(`%${modele.toLowerCase()}%`);
     }
     if (type_carburant) {
       query += ' AND type_carburant = ?';
@@ -84,48 +84,88 @@ const Car = {
 
   // ── Récupérer une voiture par ID ───────────────────────────
   findById: async (id) => {
-    const query = `
-      SELECT 
-        c.*,
-        JSON_AGG(
-          JSON_OBJECT(
-            'id', ci.id,
-            'url', ci.url,
-            'est_principale', ci.est_principale,
-            'ordre', ci.ordre
-          ) ORDER BY ci.ordre ASC
-        ) FILTER (WHERE ci.id IS NOT NULL) AS images
-      FROM cars c
-      LEFT JOIN car_images ci ON c.id = ci.car_id
-      WHERE c.id = ?
-      GROUP BY c.id
-    `;
+    const [rows] = await pool.execute(
+      'SELECT * FROM cars WHERE id = ? AND est_publie = 1 LIMIT 1',
+      [id]
+    );
+    if (!rows[0]) return null;
 
-    const [rows] = await pool.execute(query, [id]);
-    return rows[0] || null;
+    const [images] = await pool.execute(
+      'SELECT * FROM car_images WHERE car_id = ? ORDER BY est_principale DESC, ordre ASC',
+      [id]
+    );
+
+    const photo_principale = images.find((img) => img.est_principale === 1)?.url || (images[0] && images[0].url) || null;
+    return { ...rows[0], photo_principale, images };
   },
 
   // ── Récupérer une voiture par ID (admin - brouillon ou publié) ───
   findByIdAdmin: async (id) => {
-    const query = `
-      SELECT 
-        c.*,
-        JSON_AGG(
-          JSON_OBJECT(
-            'id', ci.id,
-            'url', ci.url,
-            'est_principale', ci.est_principale,
-            'ordre', ci.ordre
-          ) ORDER BY ci.ordre ASC
-        ) FILTER (WHERE ci.id IS NOT NULL) AS images
-      FROM cars c
-      LEFT JOIN car_images ci ON c.id = ci.car_id
-      WHERE c.id = ?
-      GROUP BY c.id
-    `;
+    const [rows] = await pool.execute(
+      'SELECT * FROM cars WHERE id = ? LIMIT 1',
+      [id]
+    );
+    if (!rows[0]) return null;
 
-    const [rows] = await pool.execute(query, [id]);
+    const [images] = await pool.execute(
+      'SELECT * FROM car_images WHERE car_id = ? ORDER BY est_principale DESC, ordre ASC',
+      [id]
+    );
+
+    const photo_principale = images.find((img) => img.est_principale === 1)?.url || (images[0] && images[0].url) || null;
+    return { ...rows[0], photo_principale, images };
+  },
+
+  // ── Compter les images d'une voiture
+  countImages: async (car_id) => {
+    const [rows] = await pool.execute(
+      'SELECT COUNT(*) AS total FROM car_images WHERE car_id = ?',
+      [car_id]
+    );
+    return rows[0]?.total || 0;
+  },
+
+  clearPrimaryImages: async (car_id) => {
+    await pool.execute(
+      'UPDATE car_images SET est_principale = 0 WHERE car_id = ?',
+      [car_id]
+    );
+  },
+
+  findImageById: async (imageId) => {
+    const [rows] = await pool.execute(
+      'SELECT * FROM car_images WHERE id = ? LIMIT 1',
+      [imageId]
+    );
     return rows[0] || null;
+  },
+
+  setPrimaryImage: async (car_id, imageId) => {
+    await Car.clearPrimaryImages(car_id);
+    const [result] = await pool.execute(
+      'UPDATE car_images SET est_principale = 1 WHERE id = ? AND car_id = ?',
+      [imageId, car_id]
+    );
+    return result.affectedRows > 0;
+  },
+
+  addImage: async (car_id, url, est_principale = false, ordre = 0) => {
+    if (est_principale) {
+      await Car.clearPrimaryImages(car_id);
+    }
+    const [result] = await pool.execute(
+      'INSERT INTO car_images (car_id, url, est_principale, ordre) VALUES (?, ?, ?, ?)',
+      [car_id, url, est_principale ? 1 : 0, ordre]
+    );
+    return result.insertId;
+  },
+
+  deleteImage: async (imageId) => {
+    const [result] = await pool.execute(
+      'DELETE FROM car_images WHERE id = ?',
+      [imageId]
+    );
+    return result.affectedRows > 0;
   },
 
   // ── Récupérer toutes les voitures (admin) ──────────────────

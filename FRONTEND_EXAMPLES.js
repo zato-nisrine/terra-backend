@@ -75,6 +75,35 @@ async function getVoitures(filtres = {}) {
   return apiCall('GET', endpoint);
 }
 
+// Helper pour FormData (upload de fichiers)
+async function apiCallFormData(method, endpoint, formData) {
+  const headers = {};
+  const token = getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const options = {
+    method,
+    headers,
+    body: formData,
+  };
+
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, options);
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(json.message || `Erreur ${response.status}`);
+    }
+
+    return json;
+  } catch (error) {
+    console.error('Erreur API:', error);
+    throw error;
+  }
+}
+
 // Exemple d'utilisation
 async function afficherVoitures() {
   try {
@@ -308,6 +337,72 @@ async function traiterFormulairCreationVoiture(formData) {
     alert(`Erreur: ${error.message}`);
   }
 }
+
+// ============================================================
+// 8.1 ADMIN - UPLOAD PHOTO VOITURE
+// ============================================================
+
+// Uploader des images pour une voiture (admin)
+async function uploadCarImages(carId, files, options = {}) {
+  const formData = new FormData();
+
+  if (Array.isArray(files)) {
+    files.forEach((file) => formData.append('images', file));
+  } else if (files) {
+    formData.append('image', files);
+  }
+
+  if (options.est_principale !== undefined) {
+    formData.append('est_principale', options.est_principale ? 'true' : 'false');
+  }
+  if (options.photo_principale_index !== undefined) {
+    formData.append('photo_principale_index', String(options.photo_principale_index));
+  }
+
+  return apiCallFormData('POST', `/upload/car/${carId}`, formData);
+}
+
+// Sélectionner une image principale pour une voiture (admin)
+async function setCarPrimaryImage(imageId) {
+  return apiCall('PATCH', `/upload/car/image/${imageId}/primary`, {});
+}
+
+// Supprimer une image de voiture (admin)
+async function deleteCarImage(imageId) {
+  return apiCall('DELETE', `/upload/car/image/${imageId}`);
+}
+
+// Exemple d'utilisation - formulaire d'upload
+async function traiterUploadImagesVoiture(carId, fileInput, options = {}) {
+  try {
+    if (!getToken()) {
+      alert('Authentification requise');
+      return;
+    }
+
+    const files = Array.from(fileInput.files);
+    if (files.length === 0) {
+      alert('Sélectionnez au moins une image.');
+      return;
+    }
+
+    const result = await uploadCarImages(carId, files, options);
+    console.log('Images uploadées:', result.data);
+    alert(`Images uploadées : ${result.data.length}`);
+    return result.data;
+  } catch (error) {
+    console.error('Erreur lors de l\'upload :', error);
+    alert(`Erreur: ${error.message}`);
+  }
+}
+
+// Exemple d'HTML à utiliser dans un formulaire :
+// <input type="file" id="carImages" name="images" multiple accept="image/*" />
+// <button onclick="handleUploadCarImages()">Uploader</button>
+// function handleUploadCarImages() {
+//   const input = document.getElementById('carImages');
+//   traiterUploadImagesVoiture(1, input, { est_principale: true, photo_principale_index: 0 });
+// }
 
 // ============================================================
 // 9. ADMIN - MODIFIER UNE VOITURE

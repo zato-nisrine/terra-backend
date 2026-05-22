@@ -77,6 +77,8 @@ Récupère les informations détaillées d'une voiture avec toutes ses photos.
 **Paramètres URL** :
 - `id` (number) : ID de la voiture
 
+**Note** : La réponse contient désormais `photo_principale` et `images[]`.
+
 **Exemple de requête** :
 ```bash
 GET /api/cars/1
@@ -106,6 +108,7 @@ GET /api/cars/1
     "est_publie": 1,
     "created_at": "2024-05-22T10:30:00Z",
     "updated_at": "2024-05-22T15:45:00Z",
+    "photo_principale": "http://localhost:5000/uploads/cars/photo1.jpg",
     "images": [
       {
         "id": 1,
@@ -518,11 +521,23 @@ GET /api/cars?marque=BMW&type_carburant=diesel&prix_min=100&prix_max=200&transmi
 
 ---
 
-## 🖼️ Gestion des images (À venir)
+## 🖼️ Gestion des images
 
-Les endpoints pour télécharger et gérer les images des voitures seront similaires à ceux des logements :
-- `POST /api/upload/car/:id` - Télécharger une image
-- `DELETE /api/upload/car/:id/:imageId` - Supprimer une image
+Les endpoints pour télécharger et gérer les images des voitures sont :
+
+### **POST /api/upload/car/:id**
+- Télécharge des images pour la voiture identifiée par `id`
+- Reçoit du `multipart/form-data`
+- Champs acceptés :
+  - `images` ou `image` (fichiers)
+  - `est_principale` (true/false)
+  - `photo_principale_index` (index de l'image principale dans le lot)
+
+### **PATCH /api/upload/car/image/:imageId/primary**
+- Définit l'image dont l'ID est `imageId` comme photo principale
+
+### **DELETE /api/upload/car/image/:imageId**
+- Supprime l'image dont l'ID est `imageId`
 
 ---
 

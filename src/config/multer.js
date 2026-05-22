@@ -5,24 +5,30 @@ const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
-// Créer le dossier uploads/listings s'il n'existe pas
-const uploadDir = path.join(__dirname, '../../uploads/listings');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const createUploader = (subfolder, prefix) => {
+  const uploadDir = path.join(__dirname, '../../uploads', subfolder);
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
-// Stockage sur disque
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Nom unique : timestamp + nombre aléatoire + extension originale
-    const ext      = path.extname(file.originalname).toLowerCase();
-    const filename = `listing_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
-    cb(null, filename);
-  },
-});
+  return multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const ext      = path.extname(file.originalname).toLowerCase();
+        const filename = `${prefix}_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
+        cb(null, filename);
+      },
+    }),
+    fileFilter,
+    limits: {
+      fileSize: MAX_FILE_MB * 1024 * 1024,
+      files:    MAX_FILES,
+    },
+  });
+};
 
 // Filtre — accepter uniquement les images
 const fileFilter = (req, file, cb) => {
@@ -37,14 +43,8 @@ const fileFilter = (req, file, cb) => {
 const MAX_FILE_MB = Number(process.env.UPLOAD_MAX_FILE_MB) || 15;
 const MAX_FILES   = Number(process.env.UPLOAD_MAX_FILES)   || 10;
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: MAX_FILE_MB * 1024 * 1024,
-    files:    MAX_FILES,
-  },
-});
+const upload = createUploader('listings', 'listing');
+upload.car = createUploader('cars', 'car');
 
 upload.limitsConfig = { maxFileMb: MAX_FILE_MB, maxFiles: MAX_FILES };
 
