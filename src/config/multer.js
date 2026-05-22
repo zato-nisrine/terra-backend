@@ -3,7 +3,7 @@
 
 const multer = require('multer');
 const path   = require('path');
-const fs     = require('fs');
+const fs     = require('fs'); 
 
 const createUploader = (subfolder, prefix) => {
   const uploadDir = path.join(__dirname, '../../uploads', subfolder);
