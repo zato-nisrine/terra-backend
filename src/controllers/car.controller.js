@@ -101,29 +101,36 @@ const carController = {
   // Admin — créer une nouvelle voiture
   create: async (req, res, next) => {
     try {
-      const {
-        marque,
-        modele,
-        annee,
-        type_carburant,
-        transmission,
-        nb_places,
-        couleur,
-        plaque_immatriculation,
-        prix_par_jour,
-        description,
-        climatise,
-        wifi,
-        cruise_control,
-        siege_chauffant,
-        toit_panoramique,
-      } = req.body;
+      const body = req.body;
+      const marque = body.marque;
+      const modele = body.modele;
+      const annee = body.annee;
+      const type_carburant = body.type_carburant || body.typeCarburant;
+      const transmission = body.transmission;
+      const nb_places = body.nb_places ?? body.nbPlaces;
+      const couleur = body.couleur;
+      const plaque_immatriculation = body.plaque_immatriculation || body.plaqueImmatriculation;
+      const prix_par_jour = body.prix_par_jour ?? body.prixParJour;
+      const description = body.description;
+      const climatise = body.climatise === true || body.climatise === 'true' || body.climatise === 1 || body.climatise === '1';
+      const wifi = body.wifi === true || body.wifi === 'true' || body.wifi === 1 || body.wifi === '1';
+      const cruise_control = body.cruise_control ?? body.cruiseControl;
+      const siege_chauffant = body.siege_chauffant ?? body.siegeChauffant;
+      const toit_panoramique = body.toit_panoramique ?? body.toitPanoramique;
 
-      // Validation des champs obligatoires
-      if (!marque || !modele || !type_carburant || !transmission || !nb_places || !plaque_immatriculation || !prix_par_jour) {
+      const missingFields = [];
+      if (!marque) missingFields.push('marque');
+      if (!modele) missingFields.push('modele');
+      if (!type_carburant) missingFields.push('type_carburant');
+      if (!transmission) missingFields.push('transmission');
+      if (nb_places == null || nb_places === '') missingFields.push('nb_places');
+      if (!plaque_immatriculation) missingFields.push('plaque_immatriculation');
+      if (prix_par_jour == null || prix_par_jour === '') missingFields.push('prix_par_jour');
+
+      if (missingFields.length > 0) {
         return res.status(400).json({
           success: false,
-          message: 'Veuillez fournir tous les champs obligatoires.',
+          message: `Veuillez fournir les champs obligatoires suivants : ${missingFields.join(', ')}.`,
         });
       }
 
@@ -138,8 +145,8 @@ const carController = {
         plaque_immatriculation,
         prix_par_jour,
         description,
-        climatise: climatise || false,
-        wifi: wifi || false,
+        climatise,
+        wifi,
         cruise_control: cruise_control || false,
         siege_chauffant: siege_chauffant || false,
         toit_panoramique: toit_panoramique || false,
