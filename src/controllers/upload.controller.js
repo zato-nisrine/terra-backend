@@ -12,13 +12,14 @@ const uploadController = {
   uploadListingImages: async (req, res, next) => {
     try {
       const { id } = req.params;
+      const files = req.files?.images || req.files?.['images[]'] || [];
       const markPrimary = req.body.est_principale !== 'false';
       const primaryIndex = Math.min(
         Math.max(0, parseInt(req.body.photo_principale_index ?? '0', 10) || 0),
-        Math.max(0, (req.files?.length || 1) - 1)
+        Math.max(0, (files?.length || 1) - 1)
       );
 
-      if (!req.files || req.files.length === 0) {
+      if (!files || files.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Aucune image reçue.',
@@ -32,8 +33,8 @@ const uploadController = {
       const baseOrdre = await Listing.countImages(id);
       const images = [];
 
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         const url  = `/uploads/listings/${file.filename}`;
 
         const principale = markPrimary && i === primaryIndex;
@@ -58,7 +59,7 @@ const uploadController = {
   uploadCarImages: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const files = req.files?.images || req.files?.image || [];
+      const files = req.files?.images || req.files?.['images[]'] || req.files?.image || req.files?.['image[]'] || [];
       const markPrimary = req.body.est_principale !== 'false';
       const primaryIndex = Math.min(
         Math.max(0, parseInt(req.body.photo_principale_index ?? '0', 10) || 0),

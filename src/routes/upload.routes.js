@@ -11,7 +11,10 @@ router.post(
   '/listing/:id',
   authMiddleware,
   adminMiddleware,
-  upload.array('images', 10),
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'images[]', maxCount: 10 },
+  ]),
   uploadController.uploadListingImages
 );
 
@@ -22,7 +25,9 @@ router.post(
   adminMiddleware,
   upload.car.fields([
     { name: 'images', maxCount: 10 },
+    { name: 'images[]', maxCount: 10 },
     { name: 'image', maxCount: 10 },
+    { name: 'image[]', maxCount: 10 },
   ]),
   uploadController.uploadCarImages
 );
