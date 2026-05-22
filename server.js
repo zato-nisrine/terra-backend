@@ -15,6 +15,8 @@ const contactRoutes      = require('./src/routes/contact.routes');
 const uploadRoutes       = require('./src/routes/upload.routes');
 const adminRoutes        = require('./src/routes/admin.routes');
 const reservationRoutes  = require('./src/routes/reservation.routes');
+const carRoutes          = require('./src/routes/car.routes');
+const carReservationRoutes = require('./src/routes/carReservation.routes');
 
 // ── Import du gestionnaire d'erreurs ──────────────────────
 const errorHandler = require('./src/middlewares/errorHandler');
@@ -42,12 +44,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes de l'API ───────────────────────────────────────
-app.use('/api/auth',         authRoutes);
-app.use('/api/listings',     listingRoutes);
-app.use('/api/contact',      contactRoutes);
-app.use('/api/upload',       uploadRoutes);
-app.use('/api/admin',        adminRoutes);
-app.use('/api/reservations', reservationRoutes);
+app.use('/api/auth',              authRoutes);
+app.use('/api/listings',          listingRoutes);
+app.use('/api/contact',           contactRoutes);
+app.use('/api/upload',            uploadRoutes);
+app.use('/api/admin',             adminRoutes);
+app.use('/api/reservations',      reservationRoutes);
+app.use('/api/cars',              carRoutes);
+app.use('/api/car-reservations',  carReservationRoutes);
 
 // ── Route de santé — vérifier que le serveur tourne ──────
 app.get('/api/health', (req, res) => {

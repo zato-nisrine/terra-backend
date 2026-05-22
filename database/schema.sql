@@ -153,3 +153,86 @@ DROP TRIGGER IF EXISTS reservations_updated_at ON reservations;
 CREATE TRIGGER reservations_updated_at
   BEFORE UPDATE ON reservations
   FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- ============================================================
+-- 6. CARS — voitures de location
+-- ============================================================
+CREATE TABLE IF NOT EXISTS cars (
+  id                      SERIAL PRIMARY KEY,
+  marque                  VARCHAR(100) NOT NULL,
+  modele                  VARCHAR(100) NOT NULL,
+  annee                   SMALLINT,
+  type_carburant          VARCHAR(50),
+  transmission            VARCHAR(50),
+  nb_places               SMALLINT NOT NULL,
+  couleur                 VARCHAR(50),
+  plaque_immatriculation  VARCHAR(50) NOT NULL UNIQUE,
+  prix_par_jour           NUMERIC(12,2) NOT NULL,
+  description             TEXT,
+  climatise               SMALLINT NOT NULL DEFAULT 0,
+  wifi                    SMALLINT NOT NULL DEFAULT 0,
+  cruise_control          SMALLINT NOT NULL DEFAULT 0,
+  siege_chauffant         SMALLINT NOT NULL DEFAULT 0,
+  toit_panoramique        SMALLINT NOT NULL DEFAULT 0,
+  est_publie              SMALLINT NOT NULL DEFAULT 0,
+  cree_par                INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at              TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_marque ON cars (marque);
+CREATE INDEX IF NOT EXISTS idx_type_carburant ON cars (type_carburant);
+CREATE INDEX IF NOT EXISTS idx_prix_par_jour ON cars (prix_par_jour);
+CREATE INDEX IF NOT EXISTS idx_est_publie_cars ON cars (est_publie);
+
+-- ============================================================
+-- 7. CAR_IMAGES — photos liées à une voiture
+-- ============================================================
+CREATE TABLE IF NOT EXISTS car_images (
+  id             SERIAL PRIMARY KEY,
+  car_id         INTEGER NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
+  url            VARCHAR(500) NOT NULL,
+  est_principale SMALLINT NOT NULL DEFAULT 0,
+  ordre          SMALLINT NOT NULL DEFAULT 0,
+  created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_car_id ON car_images (car_id);
+
+-- ============================================================
+-- 8. CAR_RESERVATIONS — réservations de voitures
+-- ============================================================
+CREATE TABLE IF NOT EXISTS car_reservations (
+  id            SERIAL PRIMARY KEY,
+  car_id        INTEGER NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date_debut    DATE NOT NULL,
+  date_fin      DATE NOT NULL,
+  nb_jours      SMALLINT NOT NULL,
+  prix_total    NUMERIC(12,2) NOT NULL,
+  statut        VARCHAR(50) NOT NULL DEFAULT 'en_attente',
+  message       TEXT,
+  note_admin    TEXT,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_car_reservation_car_id ON car_reservations (car_id);
+CREATE INDEX IF NOT EXISTS idx_car_reservation_user_id ON car_reservations (user_id);
+CREATE INDEX IF NOT EXISTS idx_car_reservation_statut ON car_reservations (statut);
+CREATE INDEX IF NOT EXISTS idx_car_reservation_dates ON car_reservations (date_debut, date_fin);
+
+-- ============================================================
+-- Trigger pour la table cars
+-- ============================================================
+DROP TRIGGER IF EXISTS cars_updated_at ON cars;
+CREATE TRIGGER cars_updated_at
+  BEFORE UPDATE ON cars
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- Trigger pour la table car_reservations
+-- ============================================================
+DROP TRIGGER IF EXISTS car_reservations_updated_at ON car_reservations;
+CREATE TRIGGER car_reservations_updated_at
+  BEFORE UPDATE ON car_reservations
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
