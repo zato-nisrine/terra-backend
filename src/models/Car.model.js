@@ -10,7 +10,7 @@ const Car = {
     let query = `
       SELECT
         c.*,
-        (SELECT url FROM car_images ci WHERE ci.car_id = c.id AND ci.est_principale = 1 LIMIT 1) AS photo_principale
+        (SELECT url FROM car_images ci WHERE ci.car_id = c.id ORDER BY ci.est_principale DESC, ci.ordre ASC LIMIT 1) AS photo_principale
       FROM cars c
       WHERE c.est_publie = 1
     `;
@@ -173,7 +173,7 @@ const Car = {
     const query = `
       SELECT
         c.*,
-        (SELECT url FROM car_images ci WHERE ci.car_id = c.id AND ci.est_principale = 1 LIMIT 1) AS photo_principale
+        (SELECT url FROM car_images ci WHERE ci.car_id = c.id ORDER BY ci.est_principale DESC, ci.ordre ASC LIMIT 1) AS photo_principale
       FROM cars c
       ORDER BY c.created_at DESC
       LIMIT ? OFFSET ?
