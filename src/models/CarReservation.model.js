@@ -99,7 +99,8 @@ const CarReservation = {
         c.modele,
         u.nom,
         u.prenom,
-        u.email
+        u.email,
+        u.telephone
       FROM car_reservations cr
       JOIN cars c ON cr.car_id = c.id
       JOIN users u ON cr.user_id = u.id

@@ -2,6 +2,10 @@
 
 const CarReservation = require('../models/CarReservation.model');
 const Car = require('../models/Car.model');
+const {
+  sendCarReservationStatusEmail,
+  sendAdminNewCarReservationEmail,
+} = require('../services/mail.service');
 
 const carReservationController = {
 
@@ -73,10 +77,22 @@ const carReservationController = {
         message,
       });
 
+      let adminEmailInfo = { sent: false };
+      const fullReservation = await CarReservation.findById(result.id);
+      if (fullReservation) {
+        try {
+          adminEmailInfo = await sendAdminNewCarReservationEmail(fullReservation);
+        } catch (mailErr) {
+          console.error('Erreur email admin réservation voiture:', mailErr.message);
+          adminEmailInfo = { sent: false, reason: 'erreur_envoi' };
+        }
+      }
+
       res.status(201).json({
         success: true,
-        message: 'Réservation créée avec succès.',
-        data: result,
+        message: 'Réservation créée avec succès. L\'équipe Terra a été notifiée.',
+        data: fullReservation || result,
+        adminEmail: adminEmailInfo,
       });
 
     } catch (error) {
@@ -186,10 +202,27 @@ const carReservationController = {
         });
       }
 
+      let emailInfo = { sent: false };
+      if (statut === 'confirme' || statut === 'refuse') {
+        const reservation = await CarReservation.findById(id);
+        if (reservation) {
+          try {
+            emailInfo = await sendCarReservationStatusEmail(reservation, statut);
+          } catch (mailErr) {
+            console.error('Erreur envoi email réservation voiture:', mailErr.message);
+            emailInfo = { sent: false, reason: 'erreur_envoi' };
+          }
+        }
+      }
+
+      const statutLabel =
+        statut === 'confirme' ? 'confirmée' : statut === 'refuse' ? 'refusée' : 'mise à jour';
+
       res.json({
         success: true,
-        message: 'Statut de la réservation mise à jour.',
+        message: `Réservation ${statutLabel}.${emailInfo.sent ? ' Le client a été notifié par email.' : ''}`,
         data: result,
+        email: emailInfo,
       });
 
     } catch (error) {
