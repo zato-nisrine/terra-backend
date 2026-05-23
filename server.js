@@ -6,7 +6,7 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 
-const { testConnection } = require('./src/config/db');
+const { testConnection, runMigrations } = require('./src/config/db');
 
 // ── Import des routes ──────────────────────────────────────
 const authRoutes         = require('./src/routes/auth.routes');
@@ -78,6 +78,7 @@ app.use(errorHandler);
 const start = async () => {
   // 1. Tester la connexion MySQL avant de démarrer
   await testConnection();
+  await runMigrations();
 
   // 2. Lancer Express
   app.listen(PORT, () => {

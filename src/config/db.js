@@ -58,4 +58,16 @@ const testConnection = async () => {
   }
 };
 
-module.exports = { pool, testConnection };
+// Migrations légères au démarrage (colonnes manquantes en prod)
+const runMigrations = async () => {
+  try {
+    await pool.query(
+      'ALTER TABLE reservations ADD COLUMN IF NOT EXISTS date_fin DATE'
+    );
+    console.log('✅ Migration reservations.date_fin OK');
+  } catch (error) {
+    console.error('⚠️ Migration reservations.date_fin :', error.message);
+  }
+};
+
+module.exports = { pool, testConnection, runMigrations };
