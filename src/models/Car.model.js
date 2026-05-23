@@ -154,10 +154,10 @@ const Car = {
       await Car.clearPrimaryImages(car_id);
     }
     const [result] = await pool.execute(
-      'INSERT INTO car_images (car_id, url, est_principale, ordre) VALUES (?, ?, ?, ?)',
+      'INSERT INTO car_images (car_id, url, est_principale, ordre) VALUES (?, ?, ?, ?) RETURNING id',
       [car_id, url, est_principale ? 1 : 0, ordre]
     );
-    return result.insertId;
+    return result.insertId ?? result[0]?.id;
   },
 
   deleteImage: async (imageId) => {
@@ -201,6 +201,7 @@ const Car = {
     siege_chauffant,
     toit_panoramique,
     cree_par,
+    est_publie = 0,
   }) => {
     const query = `
       INSERT INTO cars (
@@ -208,7 +209,8 @@ const Car = {
         couleur, plaque_immatriculation, prix_par_jour, description,
         climatise, wifi, cruise_control, siege_chauffant, toit_panoramique,
         cree_par, est_publie, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      RETURNING id
     `;
 
     const values = [
@@ -228,10 +230,11 @@ const Car = {
       siege_chauffant ? 1 : 0,
       toit_panoramique ? 1 : 0,
       cree_par,
+      est_publie ? 1 : 0,
     ];
 
     const [result] = await pool.execute(query, values);
-    return { id: result.insertId };
+    return { id: result.insertId ?? result[0]?.id };
   },
 
   // ── Mettre à jour une voiture ─────────────────────────────────
@@ -252,6 +255,7 @@ const Car = {
       'cruise_control',
       'siege_chauffant',
       'toit_panoramique',
+      'est_publie',
     ];
 
     const fields = [];
@@ -260,7 +264,7 @@ const Car = {
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
         fields.push(`${key} = ?`);
-        if (['climatise', 'wifi', 'cruise_control', 'siege_chauffant', 'toit_panoramique'].includes(key)) {
+        if (['climatise', 'wifi', 'cruise_control', 'siege_chauffant', 'toit_panoramique', 'est_publie'].includes(key)) {
           values.push(value ? 1 : 0);
         } else {
           values.push(value);

@@ -9,15 +9,15 @@ const adminMiddleware = require('../middlewares/admin.middleware');
 // GET  /api/cars              — liste avec filtres & pagination
 router.get('/', carController.getAll);
 
-// GET  /api/cars/:id          — détail d'une voiture (public)
-router.get('/:id', carController.getOne);
-
-// ── Routes admin (token requis + rôle admin) ──────────────
+// ── Routes admin (avant /:id pour éviter que "admin" soit pris comme id) ──
 // GET  /api/cars/admin/all    — toutes les voitures (publiées + brouillons)
 router.get('/admin/all', authMiddleware, adminMiddleware, carController.getAllAdmin);
 
 // GET  /api/cars/admin/:id    — détail admin (brouillon ou publié)
 router.get('/admin/:id', authMiddleware, adminMiddleware, carController.getOneAdmin);
+
+// GET  /api/cars/:id          — détail d'une voiture (public)
+router.get('/:id', carController.getOne);
 
 // POST /api/cars              — créer une voiture
 router.post('/', authMiddleware, adminMiddleware, carController.create);

@@ -1,6 +1,7 @@
 // src/controllers/carReservation.controller.js
 
 const CarReservation = require('../models/CarReservation.model');
+const Car = require('../models/Car.model');
 
 const carReservationController = {
 
@@ -8,13 +9,13 @@ const carReservationController = {
   // Client — créer une réservation de voiture
   create: async (req, res, next) => {
     try {
-      const { car_id, date_debut, date_fin, nb_jours, prix_total, message } = req.body;
+      const { car_id, date_debut, date_fin, message } = req.body;
+      let { nb_jours, prix_total } = req.body;
 
-      // Validation des champs obligatoires
-      if (!car_id || !date_debut || !date_fin || !nb_jours || !prix_total) {
+      if (!car_id || !date_debut || !date_fin) {
         return res.status(400).json({
           success: false,
-          message: 'Veuillez fournir tous les champs obligatoires (car_id, date_debut, date_fin, nb_jours, prix_total).',
+          message: 'Veuillez fournir car_id, date_debut et date_fin.',
         });
       }
 
@@ -24,6 +25,31 @@ const carReservationController = {
           success: false,
           message: 'La date de fin doit être après la date de début.',
         });
+      }
+
+      const car = await Car.findByIdAdmin(car_id) || await Car.findById(car_id);
+      if (!car) {
+        return res.status(404).json({
+          success: false,
+          message: 'Voiture introuvable.',
+        });
+      }
+
+      if (!nb_jours) {
+        const debut = new Date(date_debut);
+        const fin = new Date(date_fin);
+        nb_jours = Math.max(1, Math.ceil((fin.getTime() - debut.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+
+      if (!prix_total) {
+        const prixJour = Number(car.prix_par_jour);
+        if (!Number.isFinite(prixJour)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Prix journalier de la voiture invalide.',
+          });
+        }
+        prix_total = prixJour * Number(nb_jours);
       }
 
       // Vérifier la disponibilité

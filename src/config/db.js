@@ -37,7 +37,12 @@ const normalizeResult = (result) => ({
 pool.execute = async (sql, params = []) => {
   const pgSql = replacePlaceholders(sql);
   const result = await pool.query(pgSql, params);
-  return [result.rows, normalizeResult(result)];
+  const meta = normalizeResult(result);
+  // Compatibilité mysql2 : insertId / affectedRows sur le tableau rows
+  const rows = result.rows;
+  rows.insertId = meta.insertId;
+  rows.affectedRows = meta.affectedRows;
+  return [rows, meta];
 };
 
 // Test de connexion au démarrage du serveur

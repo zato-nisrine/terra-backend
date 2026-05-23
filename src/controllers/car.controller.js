@@ -8,10 +8,19 @@ const carController = {
   // Public — liste des voitures avec filtres et pagination
   getAll: async (req, res, next) => {
     try {
-      const { marque, modele, type_carburant, prix_min, prix_max, transmission, page = 1, limit = 12 } = req.query;
+      const { marque, modele, type_carburant, carburant, prix_min, prix_max, transmission, page = 1, limit = 12 } = req.query;
 
       const offset = (Number(page) - 1) * Number(limit);
-      const filtres = { marque, modele, type_carburant, prix_min, prix_max, transmission, limit, offset };
+      const filtres = {
+        marque,
+        modele,
+        type_carburant: type_carburant || carburant,
+        prix_min,
+        prix_max,
+        transmission,
+        limit,
+        offset,
+      };
 
       const [cars, total] = await Promise.all([
         Car.findAll(filtres),
@@ -117,6 +126,7 @@ const carController = {
       const cruise_control = body.cruise_control ?? body.cruiseControl;
       const siege_chauffant = body.siege_chauffant ?? body.siegeChauffant;
       const toit_panoramique = body.toit_panoramique ?? body.toitPanoramique;
+      const est_publie = body.est_publie === true || body.est_publie === 'true' || body.est_publie === 1 || body.est_publie === '1';
 
       const missingFields = [];
       if (!marque) missingFields.push('marque');
@@ -151,6 +161,7 @@ const carController = {
         siege_chauffant: siege_chauffant || false,
         toit_panoramique: toit_panoramique || false,
         cree_par: req.user.id,
+        est_publie,
       });
 
       res.status(201).json({

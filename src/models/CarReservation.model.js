@@ -20,6 +20,7 @@ const CarReservation = {
       INSERT INTO car_reservations (
         car_id, user_id, date_debut, date_fin, nb_jours, prix_total, statut, message, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      RETURNING id
     `;
 
     const values = [
@@ -34,7 +35,7 @@ const CarReservation = {
     ];
 
     const [result] = await pool.execute(query, values);
-    return { id: result.insertId };
+    return { id: result.insertId ?? result[0]?.id };
   },
 
   // ── Récupérer les réservations de l'utilisateur ───────────
@@ -46,7 +47,12 @@ const CarReservation = {
         c.modele,
         c.annee,
         c.couleur,
-        (SELECT url FROM car_images ci WHERE ci.car_id = c.id AND ci.est_principale = 1 LIMIT 1) AS photo_principale
+        c.prix_par_jour,
+        c.marque AS car_marque,
+        c.modele AS car_modele,
+        c.prix_par_jour AS car_prix_jour,
+        (SELECT url FROM car_images ci WHERE ci.car_id = c.id AND ci.est_principale = 1 LIMIT 1) AS photo_principale,
+        (SELECT url FROM car_images ci WHERE ci.car_id = c.id AND ci.est_principale = 1 LIMIT 1) AS car_photo
       FROM car_reservations cr
       JOIN cars c ON cr.car_id = c.id
       WHERE cr.user_id = ?
@@ -182,7 +188,7 @@ const CarReservation = {
       date_fin,
     ]);
 
-    return rows[0].count === 0;
+    return Number(rows[0]?.count ?? 0) === 0;
   },
 };
 
