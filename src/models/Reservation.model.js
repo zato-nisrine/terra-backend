@@ -5,13 +5,62 @@ const { pool } = require('../config/db');
 const Reservation = {
 
   // ── Créer une réservation / demande de visite ─────────────
-  create: async ({ listing_id, user_id, type, date_souhaitee, message }) => {
+  create: async ({ listing_id, user_id, type, date_souhaitee, date_fin, message }) => {
     const [result] = await pool.execute(
-      `INSERT INTO reservations (listing_id, user_id, type, date_souhaitee, message)
-       VALUES (?, ?, ?, ?, ?) RETURNING id`,
-      [listing_id, user_id, type || 'visite', date_souhaitee || null, message || null]
+      `INSERT INTO reservations (listing_id, user_id, type, date_souhaitee, date_fin, message)
+       VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+      [
+        listing_id,
+        user_id,
+        type || 'visite',
+        date_souhaitee || null,
+        date_fin || null,
+        message || null,
+      ]
     );
-    return result.insertId;
+    return result.insertId ?? result[0]?.id;
+  },
+
+  getConfirmedBookings: async (listing_id) => {
+    const [rows] = await pool.execute(
+      `SELECT date_souhaitee, date_fin
+       FROM reservations
+       WHERE listing_id = ?
+         AND type = 'reservation'
+         AND statut = 'confirme'
+         AND date_souhaitee IS NOT NULL`,
+      [listing_id]
+    );
+    return rows.map((row) => ({
+      date_debut: row.date_souhaitee,
+      date_fin: row.date_fin || row.date_souhaitee,
+    }));
+  },
+
+  checkAvailability: async (listing_id, date_debut, date_fin) => {
+    const [rows] = await pool.execute(
+      `SELECT COUNT(*) AS count
+       FROM reservations
+       WHERE listing_id = ?
+         AND type = 'reservation'
+         AND statut = 'confirme'
+         AND date_souhaitee IS NOT NULL
+         AND (
+           (date_souhaitee <= ? AND COALESCE(date_fin, date_souhaitee) >= ?)
+           OR (date_souhaitee <= ? AND COALESCE(date_fin, date_souhaitee) >= ?)
+           OR (date_souhaitee >= ? AND COALESCE(date_fin, date_souhaitee) <= ?)
+         )`,
+      [
+        listing_id,
+        date_fin,
+        date_debut,
+        date_fin,
+        date_debut,
+        date_debut,
+        date_fin,
+      ]
+    );
+    return Number(rows[0]?.count ?? 0) === 0;
   },
 
   // ── Réservations d'un client ──────────────────────────────

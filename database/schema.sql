@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   type          reservation_type NOT NULL DEFAULT 'visite',
   statut        reservation_status NOT NULL DEFAULT 'en_attente',
   date_souhaitee DATE,
+  date_fin       DATE,
   message       TEXT,
   note_admin    TEXT,
   created_at    TIMESTAMP NOT NULL DEFAULT NOW(),

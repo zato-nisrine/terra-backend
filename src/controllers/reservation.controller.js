@@ -9,7 +9,7 @@ const reservationController = {
   // Client connecté — faire une demande de visite ou réservation
   create: async (req, res, next) => {
     try {
-      const { listing_id, type, date_souhaitee, message } = req.body;
+      const { listing_id, type, date_souhaitee, date_fin, message } = req.body;
 
       if (!listing_id) {
         return res.status(400).json({
@@ -18,11 +18,38 @@ const reservationController = {
         });
       }
 
+      if (type === 'reservation') {
+        if (!date_souhaitee || !date_fin) {
+          return res.status(400).json({
+            success: false,
+            message: 'Veuillez sélectionner une date de début et une date de fin.',
+          });
+        }
+        if (new Date(date_souhaitee) >= new Date(date_fin)) {
+          return res.status(400).json({
+            success: false,
+            message: 'La date de fin doit être après la date de début.',
+          });
+        }
+        const isAvailable = await Reservation.checkAvailability(
+          listing_id,
+          date_souhaitee,
+          date_fin
+        );
+        if (!isAvailable) {
+          return res.status(409).json({
+            success: false,
+            message: 'Ces dates ne sont pas disponibles. Des réservations confirmées existent déjà sur cette période.',
+          });
+        }
+      }
+
       const id = await Reservation.create({
         listing_id,
         user_id: req.user.id, // récupéré depuis le token JWT
         type,
         date_souhaitee,
+        date_fin: type === 'reservation' ? date_fin : null,
         message,
       });
 

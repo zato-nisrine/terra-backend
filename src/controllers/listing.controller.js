@@ -1,6 +1,7 @@
 // src/controllers/listing.controller.js
 
 const Listing = require('../models/Listing.model');
+const Reservation = require('../models/Reservation.model');
 
 const listingController = {
 
@@ -29,6 +30,25 @@ const listingController = {
         },
       });
 
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // ── GET /api/listings/:id/availability ────────────────────
+  // Public — dates déjà réservées (confirmées) pour le calendrier
+  getAvailability: async (req, res, next) => {
+    try {
+      const listing = await Listing.findById(req.params.id);
+      if (!listing) {
+        return res.status(404).json({
+          success: false,
+          message: 'Logement introuvable.',
+        });
+      }
+
+      const booked = await Reservation.getConfirmedBookings(req.params.id);
+      res.json({ success: true, data: booked });
     } catch (error) {
       next(error);
     }

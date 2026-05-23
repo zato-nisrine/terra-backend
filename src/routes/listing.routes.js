@@ -16,6 +16,9 @@ router.get('/admin/all', authMiddleware, adminMiddleware, listingController.getA
 // GET  /api/listings/admin/:id      — détail admin (brouillon ou publié)
 router.get('/admin/:id', authMiddleware, adminMiddleware, listingController.getOneAdmin);
 
+// GET  /api/listings/:id/availability — dates réservées (public)
+router.get('/:id/availability', listingController.getAvailability);
+
 // GET  /api/listings/:id          — détail d'un logement (public)
 router.get('/:id', listingController.getOne);
 

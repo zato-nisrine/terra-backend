@@ -49,7 +49,9 @@ const buildReservationEmail = (reservation, statut) => {
 
   if (statut === 'confirme') {
     const dateLine = reservation.date_souhaitee
-      ? `<p><strong>Date souhaitée :</strong> ${formatDate(reservation.date_souhaitee)}</p>`
+      ? reservation.date_fin && reservation.date_fin !== reservation.date_souhaitee
+        ? `<p><strong>Période :</strong> ${formatDate(reservation.date_souhaitee)} → ${formatDate(reservation.date_fin)}</p>`
+        : `<p><strong>Date souhaitée :</strong> ${formatDate(reservation.date_souhaitee)}</p>`
       : '';
 
     return {
