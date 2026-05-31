@@ -119,7 +119,7 @@ const Listing = {
          meuble, climatise, parking, gardiennage,
          eau_courante, groupe_electro, piscine,
          est_publie, cree_par)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?) RETURNING id`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?) RETURNING id`,
       [
         titre, description, type_logement, prix, type_prix || 'mois', surface || null,
         nb_pieces || null, nb_chambres || null, nb_salles_bain || null,
