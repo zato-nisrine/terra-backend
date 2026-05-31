@@ -76,7 +76,15 @@ app.use(errorHandler);
 
 // ── Démarrage du serveur ──────────────────────────────────
 const start = async () => {
-  // 1. Tester la connexion MySQL avant de démarrer
+  // Vérifier Cloudinary (requis pour l'upload des photos)
+  const cloudinaryOk = process.env.CLOUDINARY_CLOUD_NAME
+    && process.env.CLOUDINARY_API_KEY
+    && process.env.CLOUDINARY_API_SECRET;
+  if (!cloudinaryOk) {
+    console.warn('⚠️  Variables Cloudinary manquantes — l\'upload de photos ne fonctionnera pas.');
+  }
+
+  // 1. Tester la connexion PostgreSQL avant de démarrer
   await testConnection();
   await runMigrations();
 
