@@ -103,7 +103,7 @@ const Listing = {
   // ── Créer un logement (admin) ─────────────────────────────
   create: async (data) => {
     const {
-      titre, description, type_logement, prix, surface,
+      titre, description, type_logement, prix, type_prix, surface,
       nb_pieces, nb_chambres, nb_salles_bain,
       ville, quartier, adresse, latitude, longitude,
       meuble, climatise, parking, gardiennage,
@@ -113,7 +113,7 @@ const Listing = {
 
     const [result] = await pool.execute(
       `INSERT INTO listings
-        (titre, description, type_logement, prix, surface,
+        (titre, description, type_logement, prix, type_prix, surface,
          nb_pieces, nb_chambres, nb_salles_bain,
          ville, quartier, adresse, latitude, longitude,
          meuble, climatise, parking, gardiennage,
@@ -121,7 +121,7 @@ const Listing = {
          est_publie, cree_par)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?) RETURNING id`,
       [
-        titre, description, type_logement, prix, surface || null,
+        titre, description, type_logement, prix, type_prix || 'mois', surface || null,
         nb_pieces || null, nb_chambres || null, nb_salles_bain || null,
         ville, quartier || null, adresse || null, latitude || null, longitude || null,
         meuble ? 1 : 0, climatise ? 1 : 0, parking ? 1 : 0, gardiennage ? 1 : 0,
@@ -135,7 +135,7 @@ const Listing = {
   // ── Modifier un logement (admin) ──────────────────────────
   update: async (id, data) => {
     const {
-      titre, description, type_logement, statut, prix, surface,
+      titre, description, type_logement, statut, prix, type_prix, surface,
       nb_pieces, nb_chambres, nb_salles_bain,
       ville, quartier, adresse, latitude, longitude,
       meuble, climatise, parking, gardiennage,
@@ -144,14 +144,14 @@ const Listing = {
 
     const [result] = await pool.execute(
       `UPDATE listings SET
-        titre=?, description=?, type_logement=?, statut=?, prix=?, surface=?,
+        titre=?, description=?, type_logement=?, statut=?, prix=?, type_prix=?, surface=?,
         nb_pieces=?, nb_chambres=?, nb_salles_bain=?,
         ville=?, quartier=?, adresse=?, latitude=?, longitude=?,
         meuble=?, climatise=?, parking=?, gardiennage=?,
         eau_courante=?, groupe_electro=?, piscine=?
        WHERE id=?`,
       [
-        titre, description, type_logement, statut || 'disponible', prix, surface || null,
+        titre, description, type_logement, statut || 'disponible', prix, type_prix || 'mois', surface || null,
         nb_pieces || null, nb_chambres || null, nb_salles_bain || null,
         ville, quartier || null, adresse || null, latitude || null, longitude || null,
         meuble ? 1 : 0, climatise ? 1 : 0, parking ? 1 : 0, gardiennage ? 1 : 0,
