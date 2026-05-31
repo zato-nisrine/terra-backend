@@ -1,51 +1,33 @@
 // src/config/multer.js
-// Configuration de Multer pour l'upload des photos de logements
+// Upload des photos vers Cloudinary
 
-const multer = require('multer');
-const path   = require('path');
-const fs     = require('fs'); 
+const multer    = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const createUploader = (subfolder, prefix) => {
-  const uploadDir = path.join(__dirname, '../../uploads', subfolder);
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+// Configuration Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  return multer({
-    storage: multer.diskStorage({
-      destination: (req, file, cb) => {
-        cb(null, uploadDir);
-      },
-      filename: (req, file, cb) => {
-        const ext      = path.extname(file.originalname).toLowerCase();
-        const filename = `${prefix}_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`;
-        cb(null, filename);
-      },
-    }),
-    fileFilter,
-    limits: {
-      fileSize: MAX_FILE_MB * 1024 * 1024,
-      files:    MAX_FILES,
-    },
-  });
-};
+// Stockage direct vers Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder:         'terra/listings',   // dossier dans ton Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1200, height: 800, crop: 'limit', quality: 'auto' }],
+  },
+});
 
-// Filtre — accepter uniquement les images
-const fileFilter = (req, file, cb) => {
-  const typesAcceptes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (typesAcceptes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Format non accepté. Utilisez JPEG, PNG ou WebP.'), false);
-  }
-};
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5 MB max
+    files:    10,
+  },
+});
 
-const MAX_FILE_MB = Number(process.env.UPLOAD_MAX_FILE_MB) || 15;
-const MAX_FILES   = Number(process.env.UPLOAD_MAX_FILES)   || 10;
-
-const upload = createUploader('listings', 'listing');
-upload.car = createUploader('cars', 'car');
-
-upload.limitsConfig = { maxFileMb: MAX_FILE_MB, maxFiles: MAX_FILES };
-
-module.exports = upload;
+module.exports = { upload, cloudinary };
